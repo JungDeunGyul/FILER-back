@@ -1,9 +1,76 @@
 const express = require("express");
-
 const router = express.Router();
+
+const removeJoinRequest = require("../utils/removeJoinReqest");
 
 const User = require("../models/User");
 const Team = require("../models/Team");
+
+let clientTeamJoinRequestSSE = [];
+
+const sendUserDataToClients = (targetUserData, messageTargetUserId, action) => {
+  const client = clientTeamJoinRequestSSE.find((client) => {
+    return client.loginUser === messageTargetUserId;
+  });
+
+  if (client) {
+    const message = {
+      action,
+      userData: targetUserData,
+    };
+    client.write(`data: ${JSON.stringify(message)}\n\n`);
+  }
+};
+
+router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
+  try {
+    const { userId, teamName } = req.params;
+    const { action } = req.body;
+
+    const user = await User.findOne({ _id: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const team = await Team.findOne({ name: teamName });
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    const teamLeaderId = team.leader._id;
+
+    if (userId === teamLeaderId) {
+      if (action === "수락") {
+        user.teams.push(team._id);
+        user.teamMemberships.push({
+          team: team._id,
+          role: "수습",
+          status: "수락",
+        });
+
+        team.members.push({
+          user: user._id,
+          role: "수습",
+        });
+
+        removeJoinRequest(team, userId);
+        sendUserDataToClients(user, userId, action);
+      } else if (action === "거절") {
+        removeJoinRequest(team, userId);
+        sendUserDataToClients(user, userId, action);
+      }
+    } else {
+      team.joinRequests.push({ user: userId });
+
+      sendUserDataToClients(user, teamLeaderId, action);
+    }
+
+    await user.save();
+    await team.save();
+  } catch (error) {
+    return res.status(400).json({ message: "Faild, team join request" });
+  }
+});
 
 router.post("/new", async (req, res, next) => {
   try {
@@ -63,6 +130,22 @@ router.post("/new", async (req, res, next) => {
   } catch (error) {
     return res.status(400).json({ message: "Failed to create Team" });
   }
+});
+
+router.get("/filer-stream/:loginUser", (req, res) => {
+  const loginUser = req.params.loginUser;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  res.loginUser = loginUser;
+
+  clientTeamJoinRequestSSE.push(res);
+
+  req.on("close", () => {
+    clientsSSE = clientsSSE.filter((client) => client !== res);
+  });
 });
 
 module.exports = router;
