@@ -20,7 +20,6 @@ const teamSchema = new Schema({
   joinRequests: [
     {
       user: { type: Schema.Types.ObjectId, ref: "User" },
-      role: { type: String, enum: ["팀원", "수습"], default: "수습" },
     },
   ],
   leader: { type: Schema.Types.ObjectId, ref: "User" },
