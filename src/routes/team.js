@@ -10,6 +10,21 @@ router.post("/new", async (req, res, next) => {
     const userId = req.body.userId;
     const teamName = req.body.teamName;
 
+    if (teamName.length < 3 || teamName.length > 10) {
+      return res
+        .status(400)
+        .json({ message: "Team name should be between 3 and 10 characters" });
+    }
+
+    const specialChars = '!@#$%^&*(),.?":{}|<>';
+    for (let i = 0; i < teamName.length; i++) {
+      if (specialChars.includes(teamName[i])) {
+        return res
+          .status(400)
+          .json({ message: "Team name cannot contain special characters" });
+      }
+    }
+
     const user = await User.findOne({ _id: userId });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
