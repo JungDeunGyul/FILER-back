@@ -3,8 +3,8 @@ const router = express.Router();
 
 const removeJoinRequest = require("../utils/removeJoinReqest");
 
-const User = require("../models/User");
-const Team = require("../models/Team");
+const { User } = require("../models/User");
+const { Team } = require("../models/Team");
 
 let clientTeamJoinRequestSSE = [];
 
