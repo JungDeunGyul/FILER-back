@@ -21,7 +21,7 @@ router.post("/", verifyToken, async (req, res, next) => {
       return res.status(201).json({ message: "Create user success", user });
     }
 
-    res.status(200).json({ message: "Login success" });
+    res.status(200).json({ user });
   } catch (error) {
     return res.status(400).json({ message: "Login failed" });
   }

@@ -37,6 +37,21 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
       return res.status(404).json({ message: "Team not found" });
     }
 
+    const isMember = team.members.some(
+      (member) => member.user.toString() === userId,
+    );
+    const isJoinRequested = team.joinRequests.some(
+      (request) => request.user.toString() === userId,
+    );
+
+    if (isMember) {
+      return res.status(412).json({ message: "User is already a member" });
+    } else if (isJoinRequested) {
+      return res
+        .status(412)
+        .json({ message: "User is already has a pending request" });
+    }
+
     const teamLeaderId = team.leader._id;
 
     if (userId === teamLeaderId) {
@@ -61,6 +76,9 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
       }
     } else {
       team.joinRequests.push({ user: userId });
+      res
+        .status(200)
+        .json({ message: "Your request has been sent successfully" });
 
       sendUserDataToClients(user, teamLeaderId, action);
     }

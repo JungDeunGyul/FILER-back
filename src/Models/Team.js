@@ -11,12 +11,6 @@ const teamSchema = new Schema({
   ],
   ownedFolders: [{ type: Schema.Types.ObjectId, ref: "Folder" }],
   ownedFiles: [{ type: Schema.Types.ObjectId, ref: "File" }],
-  roles: [
-    {
-      name: { type: String, required: true },
-      level: { type: String, enum: ["팀장", "팀원", "수습"], required: true },
-    },
-  ],
   joinRequests: [
     {
       user: { type: Schema.Types.ObjectId, ref: "User" },
