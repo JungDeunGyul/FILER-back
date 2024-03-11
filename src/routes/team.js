@@ -90,10 +90,9 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
   }
 });
 
-router.post("/new", async (req, res, next) => {
+router.post("/:teamName/new/:userId", async (req, res, next) => {
   try {
-    const userId = req.body.userId;
-    const teamName = req.body.teamName;
+    const { userId, teamName } = req.params;
 
     if (teamName.length < 3 || teamName.length > 10) {
       return res
