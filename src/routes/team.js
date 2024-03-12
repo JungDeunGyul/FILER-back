@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const removeJoinRequest = require("../utils/removeJoinReqest");
+const deleteTeamResources = require("../utils/deleteTeamResources");
 
 const { User } = require("../models/User");
 const { Team } = require("../models/Team");
@@ -325,6 +326,71 @@ router.post("/:teamName/new/:userId", async (req, res, next) => {
   } catch (error) {
     return res.status(400).json({ message: "Failed to create Team" });
   }
+});
+
+router.delete("/:teamName/withdraw/:userId", async (req, res, next) => {
+  const { teamName, userId } = req.params;
+  const userRole = req.body.currentUserRole;
+
+  const user = await User.findOne({ _id: userId });
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  const team = await Team.findOne({ name: teamName });
+
+  if (!team) {
+    return res.status(404).json({ message: "Team not found" });
+  }
+
+  const updatedTeamMemberships = user.teamMemberships.filter(
+    (membership) => membership.team.toString() !== team._id.toString(),
+  );
+
+  const updatedTeams = user.teams.filter(
+    (userTeam) => userTeam.toString() !== team._id.toString(),
+  );
+
+  user.teamMemberships = updatedTeamMemberships;
+  user.teams = updatedTeams;
+  await user.save();
+
+  const updatedMembers = team.members.filter(
+    (member) => member.user.toString() !== userId,
+  );
+
+  team.members = updatedMembers;
+  await team.save();
+
+  if (userRole === "팀장") {
+    await deleteTeamResources(team);
+
+    await Team.findOneAndDelete({ name: teamName });
+  }
+
+  const updatedUser = await User.findOne({ _id: userId })
+    .populate({
+      path: "teams",
+      populate: {
+        path: "members.user",
+      },
+    })
+    .populate({
+      path: "teams",
+      populate: {
+        path: "members.user",
+      },
+    })
+    .populate({
+      path: "teams",
+      populate: {
+        path: "ownedFolders",
+      },
+    });
+
+  return res
+    .status(200)
+    .json({ message: `팀 ${teamName}에서 탈퇴 되었습니다.`, updatedUser });
 });
 
 router.get("/filer-stream/:loginUser", (req, res) => {
