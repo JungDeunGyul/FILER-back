@@ -9,7 +9,25 @@ router.post("/", verifyToken, async (req, res, next) => {
   try {
     const userData = req.body.user;
 
-    let user = await User.findOne({ email: userData.email });
+    let user = await User.findOne({ email: userData.email })
+      .populate({
+        path: "teams",
+        populate: {
+          path: "members.user",
+        },
+      })
+      .populate({
+        path: "teams",
+        populate: {
+          path: "ownedFolders",
+        },
+      })
+      .populate({
+        path: "teams",
+        populate: {
+          path: "ownedFiles",
+        },
+      });
 
     if (!user) {
       user = await User.create({
