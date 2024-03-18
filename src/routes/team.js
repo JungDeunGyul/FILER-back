@@ -3,6 +3,7 @@ const router = express.Router();
 
 const s3client = require("../../aws/s3Client");
 const s3Uploader = require("../middleware/s3Uploader");
+const { GetObjectCommand } = require("@aws-sdk/client-s3");
 
 const removeJoinRequest = require("../utils/removeJoinReqest");
 const deleteTeamResources = require("../utils/deleteTeamResources");
@@ -207,6 +208,26 @@ router.post(
     }
   },
 );
+
+router.get("/:teamId/file/:fileId", async (req, res) => {
+  const { fileId } = req.params;
+
+  try {
+    const file = await File.findOne({ _id: fileId });
+    const getObjectParams = {
+      Bucket: process.env.AWS_BUCKET,
+      Key: file.s3Key,
+    };
+
+    const getObjectCommand = new GetObjectCommand(getObjectParams);
+    const { Body } = await s3client.send(getObjectCommand);
+    res.attachment(file.s3Key);
+
+    Body.pipe(res);
+  } catch (error) {
+    res.status(404).json({ error: "File not found" });
+  }
+});
 
 router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
   try {
