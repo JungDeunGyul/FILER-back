@@ -5,7 +5,9 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.533.0",
     "aws-sdk": "^2.1576.0",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "debug": "^4.3.4",
     "dotenv": "^16.4.5",
