@@ -8,16 +8,20 @@ const fileSchema = new Schema({
     type: String,
   },
   ownerTeam: { type: Schema.Types.ObjectId, ref: "Team", required: true },
-  parentFolder: { type: Schema.Types.ObjectId, ref: "Folder", required: true },
-  md5Hash: { type: String, required: true },
+  parentFolder: { type: Schema.Types.ObjectId, ref: "Folder" },
+  uploadUser: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  comments: { type: Schema.Types.ObjectId, ref: "Comments" },
+  filePath: { type: String, required: true },
+  s3Key: { type: String },
   versions: [
     {
       versionNumber: { type: String, required: true },
-      md5Hash: { type: String, required: true },
+      uploadUser: { type: Schema.Types.ObjectId, ref: "User", required: true },
+      filePath: { type: String, required: true },
       created_at: { type: Date, default: Date.now },
     },
   ],
-  visible: { type: Boolean, default: true },
+  visibleTo: { type: String, enum: ["팀장", "팀원", "수습"], default: "수습" },
   created_at: { type: Date, default: Date.now },
 });
 
