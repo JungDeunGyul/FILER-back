@@ -286,6 +286,7 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
     const isMember = team.members.some(
       (member) => member.user.toString() === userId,
     );
+
     const isJoinRequested = team.joinRequests.some(
       (request) => request.user.toString() === userId,
     );
@@ -492,7 +493,7 @@ router.post("/:teamName/new/:userId", async (req, res, next) => {
 });
 
 router.delete("/:teamName/withdraw/:userId", async (req, res, next) => {
-  const { teamName, userId } = req.params;
+  const { teamId, userId } = req.params;
   const userRole = req.body.currentUserRole;
 
   const user = await User.findOne({ _id: userId });
@@ -500,21 +501,16 @@ router.delete("/:teamName/withdraw/:userId", async (req, res, next) => {
     return res.status(404).json({ message: "User not found" });
   }
 
-  const team = await Team.findOne({ name: teamName });
+  const team = await Team.findOne({ _id: teamId });
 
   if (!team) {
     return res.status(404).json({ message: "Team not found" });
   }
 
-  const updatedTeamMemberships = user.teamMemberships.filter(
-    (membership) => membership.team.toString() !== team._id.toString(),
-  );
-
   const updatedTeams = user.teams.filter(
     (userTeam) => userTeam.toString() !== team._id.toString(),
   );
 
-  user.teamMemberships = updatedTeamMemberships;
   user.teams = updatedTeams;
   await user.save();
 
@@ -534,20 +530,25 @@ router.delete("/:teamName/withdraw/:userId", async (req, res, next) => {
   const updatedUser = await User.findOne({ _id: userId })
     .populate({
       path: "teams",
-      populate: {
-        path: "members.user",
-      },
+      populate: [
+        {
+          path: "members.user",
+        },
+        {
+          path: "ownedFolders",
+        },
+        {
+          path: "ownedFiles",
+        },
+        {
+          path: "joinRequests.user",
+        },
+      ],
     })
     .populate({
-      path: "teams",
+      path: "notifications",
       populate: {
-        path: "members.user",
-      },
-    })
-    .populate({
-      path: "teams",
-      populate: {
-        path: "ownedFolders",
+        path: "team",
       },
     });
 
