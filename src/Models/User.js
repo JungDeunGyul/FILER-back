@@ -8,21 +8,18 @@ const userSchema = new Schema({
   teams: [{ type: Schema.Types.ObjectId, ref: "Team" }],
   accessibleFolders: [{ type: Schema.Types.ObjectId, ref: "Folder" }],
   accessibleFiles: [{ type: Schema.Types.ObjectId, ref: "File" }],
-  teamMemberships: [
+  notifications: [
     {
-      team: { type: Schema.Types.ObjectId, ref: "Team" },
-      role: { type: String, enum: ["팀장", "팀원", "수습"], default: "수습" },
-      status: {
+      type: {
         type: String,
-        enum: ["대기중", "수락", "거절"],
-        default: "대기중",
+        enum: ["가입요청", "가입수락", "가입거절"],
+        required: true,
       },
-    },
-  ],
-  delegatedLeaders: [
-    {
-      team: { type: Schema.Types.ObjectId, ref: "Team" },
-      leader: { type: Schema.Types.ObjectId, ref: "User" },
+      requestUser: { type: Schema.Types.ObjectId, ref: "User" },
+      content: { type: String, required: true },
+      isRead: { type: Boolean, default: false, required: true },
+      team: { type: Schema.Types.ObjectId, ref: "Team", required: true },
+      created_at: { type: Date, default: Date.now },
     },
   ],
   comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
