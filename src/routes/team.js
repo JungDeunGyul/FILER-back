@@ -456,31 +456,31 @@ router.post("/:teamName/new/:userId", async (req, res, next) => {
     });
 
     user.teams.push(newTeam._id);
-    user.teamMemberships.push({
-      team: newTeam._id,
-      role: "팀장",
-      status: "수락",
-    });
 
     await user.save();
 
     const updatedUser = await User.findOne({ _id: userId })
       .populate({
         path: "teams",
-        populate: {
-          path: "members.user",
-        },
+        populate: [
+          {
+            path: "members.user",
+          },
+          {
+            path: "ownedFolders",
+          },
+          {
+            path: "ownedFiles",
+          },
+          {
+            path: "joinRequests.user",
+          },
+        ],
       })
       .populate({
-        path: "teams",
+        path: "notifications",
         populate: {
-          path: "ownedFolders",
-        },
-      })
-      .populate({
-        path: "teams",
-        populate: {
-          path: "ownedFiles",
+          path: "team",
         },
       });
 
