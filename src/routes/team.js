@@ -45,7 +45,10 @@ router.post("/:teamName/createfolder/:userId", async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const team = await Team.findOne({ name: teamName });
+    const team = await Team.findOne({ name: teamName }).populate({
+      path: "ownedFolders",
+    });
+
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
@@ -53,6 +56,7 @@ router.post("/:teamName/createfolder/:userId", async (req, res, next) => {
     const isUserInTeam = team.members.some((member) =>
       member.user.equals(userId),
     );
+
     if (!isUserInTeam) {
       return res
         .status(403)
@@ -90,20 +94,25 @@ router.post("/:teamName/createfolder/:userId", async (req, res, next) => {
     const updatedUser = await User.findOne({ _id: userId })
       .populate({
         path: "teams",
-        populate: {
-          path: "members.user",
-        },
+        populate: [
+          {
+            path: "members.user",
+          },
+          {
+            path: "ownedFolders",
+          },
+          {
+            path: "ownedFiles",
+          },
+          {
+            path: "joinRequests.user",
+          },
+        ],
       })
       .populate({
-        path: "teams",
+        path: "notifications",
         populate: {
-          path: "members.user",
-        },
-      })
-      .populate({
-        path: "teams",
-        populate: {
-          path: "ownedFolders",
+          path: "team",
         },
       });
 
