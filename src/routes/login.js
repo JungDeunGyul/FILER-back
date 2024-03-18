@@ -12,20 +12,25 @@ router.post("/", verifyToken, async (req, res, next) => {
     let user = await User.findOne({ email: userData.email })
       .populate({
         path: "teams",
-        populate: {
-          path: "members.user",
-        },
+        populate: [
+          {
+            path: "members.user",
+          },
+          {
+            path: "ownedFolders",
+          },
+          {
+            path: "ownedFiles",
+          },
+          {
+            path: "joinRequests.user",
+          },
+        ],
       })
       .populate({
-        path: "teams",
+        path: "notifications",
         populate: {
-          path: "ownedFolders",
-        },
-      })
-      .populate({
-        path: "teams",
-        populate: {
-          path: "ownedFiles",
+          path: "team",
         },
       });
 
