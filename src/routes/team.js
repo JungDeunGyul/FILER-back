@@ -15,15 +15,21 @@ const { File } = require("../models/File");
 
 let clientTeamJoinRequestSSE = [];
 
-const sendUserDataToClients = (targetUserData, messageTargetUserId, action) => {
+const sendUserDataToClients = (
+  targetUserData,
+  messageTargetUserId,
+  action,
+  notification,
+) => {
   const client = clientTeamJoinRequestSSE.find((client) => {
-    return client.loginUser === messageTargetUserId;
+    return client.loginUserId === messageTargetUserId.toString();
   });
 
   if (client) {
     const message = {
       action,
       userData: targetUserData,
+      notification,
     };
     client.write(`data: ${JSON.stringify(message)}\n\n`);
   }
@@ -232,9 +238,33 @@ router.get("/:teamId/file/:fileId", async (req, res) => {
 router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
   try {
     const { userId, teamName } = req.params;
-    const { action } = req.body;
+    const { action, requestUserId } = req.body;
 
-    const user = await User.findOne({ _id: userId });
+    const user = await User.findOne({ _id: userId })
+      .populate({
+        path: "teams",
+        populate: [
+          {
+            path: "members.user",
+          },
+          {
+            path: "ownedFolders",
+          },
+          {
+            path: "ownedFiles",
+          },
+          {
+            path: "joinRequests.user",
+          },
+        ],
+      })
+      .populate({
+        path: "notifications",
+        populate: {
+          path: "team",
+        },
+      });
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -251,9 +281,9 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
       (request) => request.user.toString() === userId,
     );
 
-    if (isMember) {
+    if (isMember && action === "가입요청") {
       return res.status(412).json({ message: "User is already a member" });
-    } else if (isJoinRequested) {
+    } else if (isJoinRequested && action === "가입요청") {
       return res
         .status(412)
         .json({ message: "User is already has a pending request" });
@@ -261,36 +291,112 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
 
     const teamLeaderId = team.leader._id;
 
-    if (userId === teamLeaderId) {
+    const teamLeader = await User.findOne({ _id: teamLeaderId })
+      .populate({
+        path: "teams",
+        populate: [
+          {
+            path: "members.user",
+          },
+          {
+            path: "ownedFolders",
+          },
+          {
+            path: "ownedFiles",
+          },
+          {
+            path: "joinRequests.user",
+          },
+        ],
+      })
+      .populate({
+        path: "notifications",
+        populate: {
+          path: "team",
+        },
+      });
+
+    const requestUser = await User.findOne({ _id: requestUserId });
+
+    if (userId === teamLeaderId.toString()) {
       if (action === "수락") {
-        user.teams.push(team._id);
-        user.teamMemberships.push({
-          team: team._id,
-          role: "수습",
-          status: "수락",
-        });
-
         team.members.push({
-          user: user._id,
+          user: requestUser._id,
           role: "수습",
         });
 
-        removeJoinRequest(team, userId);
-        sendUserDataToClients(user, userId, action);
+        requestUser.teams.push(team._id);
+
+        requestUser.notifications.push({
+          type: "가입수락",
+          content: `${requestUser.nickname}님은 ${team.name}팀에 가입되셨습니다.`,
+          isRead: false,
+          team,
+        });
+
+        await requestUser.save();
+        const updatedRequestUser = await User.findOne({ _id: requestUserId })
+          .populate({
+            path: "teams",
+            populate: [
+              {
+                path: "members.user",
+              },
+              {
+                path: "ownedFolders",
+              },
+              {
+                path: "ownedFiles",
+              },
+              {
+                path: "joinRequests.user",
+              },
+            ],
+          })
+          .populate({
+            path: "notifications",
+            populate: {
+              path: "team",
+            },
+          });
+
+        removeJoinRequest(team, requestUser._id);
+        sendUserDataToClients(
+          updatedRequestUser,
+          updatedRequestUser._id,
+          action,
+        );
       } else if (action === "거절") {
-        removeJoinRequest(team, userId);
-        sendUserDataToClients(user, userId, action);
+        requestUser.notifications.push({
+          type: "가입거절",
+          content: `${requestUser.nickname}님은 ${team.name}팀에 거절되셨습니다.`,
+          isRead: false,
+          team,
+        });
+
+        removeJoinRequest(team, requestUser._id);
+        sendUserDataToClients(requestUser, requestUser._id, action);
       }
-    } else {
+
+      await requestUser.save();
+    } else if (action === "가입요청") {
       team.joinRequests.push({ user: userId });
+      teamLeader.notifications.push({
+        type: "가입요청",
+        content: `${user.nickname}님이 ${team.name}에 가입 신청을 하셨습니다.`,
+        requestUser: `${userId}`,
+        isRead: false,
+        team,
+      });
+
       res
         .status(200)
         .json({ message: "Your request has been sent successfully" });
 
-      sendUserDataToClients(user, teamLeaderId, action);
+      sendUserDataToClients(teamLeader, teamLeaderId, action);
+      await teamLeader.save();
     }
 
-    await user.save();
     await team.save();
   } catch (error) {
     return res.status(400).json({ message: "Faild, team join request" });
@@ -441,19 +547,21 @@ router.delete("/:teamName/withdraw/:userId", async (req, res, next) => {
     .json({ message: `팀 ${teamName}에서 탈퇴 되었습니다.`, updatedUser });
 });
 
-router.get("/filer-stream/:loginUser", (req, res) => {
-  const loginUser = req.params.loginUser;
+router.get("/filer-stream/:loginUserId", (req, res) => {
+  const loginUserId = req.params.loginUserId;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  res.loginUser = loginUser;
+  res.loginUserId = loginUserId;
 
   clientTeamJoinRequestSSE.push(res);
 
   req.on("close", () => {
-    clientsSSE = clientsSSE.filter((client) => client !== res);
+    clientTeamJoinRequestSSE = clientTeamJoinRequestSSE.filter(
+      (client) => client !== res,
+    );
   });
 });
 
