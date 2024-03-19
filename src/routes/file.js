@@ -5,6 +5,8 @@ const { File } = require("../models/File");
 const { Folder } = require("../models/Folder");
 const { Team } = require("../models/Team");
 
+const s3Uploader = require("../middleware/s3Uploader");
+
 router.patch("/:fileId/move-to-folder/:folderId", async (req, res) => {
   try {
     const { fileId, folderId } = req.params;
@@ -91,5 +93,48 @@ router.patch("/:fileId/move-to-folder/:folderId", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+router.post(
+  "/:folderId/uploadfile/:userId",
+  s3Uploader.single("file"),
+  async (req, res, next) => {
+    try {
+      const { folderId, userId } = req.params;
+      const uploadedFile = req.file;
+
+      const folder = await Folder.findOne({ _id: folderId })
+        .populate({
+          path: "files",
+        })
+        .populate({ path: "subFolders" });
+
+      const isFile = folder.files.some(
+        (file) => file.name === uploadedFile.originalname,
+      );
+
+      if (isFile) {
+        return res.status(412).json({ message: "파일 이름이 이미 존재합니다" });
+      }
+
+      const newFile = await File.create({
+        name: uploadedFile.originalname,
+        size: uploadedFile.size,
+        type: uploadedFile.mimetype,
+        ownerTeam: folder.ownerTeam.toString(),
+        uploadUser: userId,
+        filePath: uploadedFile.location,
+        s3Key: uploadedFile.key,
+      });
+
+      folder.files.push(newFile);
+
+      await folder.save();
+
+      res.status(201).json({ message: "File uploaded successfully", folder });
+    } catch (error) {
+      res.status(404).json({ error: "Failed to upload File" });
+    }
+  },
+);
 
 module.exports = router;
