@@ -3,6 +3,7 @@ const loginRouter = require("../routes/login");
 const teamRouter = require("../routes/team");
 const notificationRouter = require("../routes/notification");
 const folderRouter = require("../routes/folder");
+const fileRouter = require("../routes/file");
 
 async function routerLoader(app) {
   app.use("/", indexRouter);
@@ -10,6 +11,7 @@ async function routerLoader(app) {
   app.use("/team", teamRouter);
   app.use("/notification", notificationRouter);
   app.use("/folder", folderRouter);
+  app.use("/file", fileRouter);
 }
 
 module.exports = routerLoader;
