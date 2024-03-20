@@ -4,6 +4,7 @@ const teamRouter = require("../routes/team");
 const notificationRouter = require("../routes/notification");
 const folderRouter = require("../routes/folder");
 const fileRouter = require("../routes/file");
+const trashRouter = require("../routes/trash");
 
 async function routerLoader(app) {
   app.use("/", indexRouter);
@@ -12,6 +13,7 @@ async function routerLoader(app) {
   app.use("/notification", notificationRouter);
   app.use("/folder", folderRouter);
   app.use("/file", fileRouter);
+  app.use("/trash", trashRouter);
 }
 
 module.exports = routerLoader;
