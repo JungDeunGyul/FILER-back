@@ -93,7 +93,6 @@ router.patch("/folder/:folderId", async (req, res) => {
   try {
     const { folderId } = req.params;
     const { currentUserRole, userId } = req.body;
-
     const folder = await Folder.findOne({ _id: folderId });
 
     if (!folder) {
@@ -122,15 +121,17 @@ router.patch("/folder/:folderId", async (req, res) => {
 
     await fileOwnerTeam.save();
 
-    const updateParentFolder = await Folder.findOneAndUpdate(
-      {
-        parentFolder: folderId,
-      },
-      { $pull: { parentFolder: folderId } },
-      { new: true },
-    );
+    if (folder.parentFolder) {
+      const parentFolderId = folder.parentFolder.toString();
 
-    if (updateParentFolder) {
+      const updateParentFolder = await Folder.findOneAndUpdate(
+        {
+          _id: parentFolderId,
+        },
+        { $pull: { subFolders: folderId } },
+        { new: true },
+      );
+
       await updateParentFolder.save();
     }
 
