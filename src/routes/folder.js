@@ -44,6 +44,7 @@ router.post("/:folderId/new", async (req, res) => {
       .populate({
         path: "files",
       })
+      .populate({ path: "parentFolder" })
       .populate({ path: "subFolders" });
 
     const team = await Team.findOne({ name: teamName }).populate({
@@ -61,6 +62,7 @@ router.post("/:folderId/new", async (req, res) => {
     const newFolder = await Folder.create({
       name: folderName,
       ownerTeam: team._id,
+      parentFolder: folderId,
     });
 
     folder.subFolders.push(newFolder);
