@@ -137,4 +137,58 @@ router.post(
   },
 );
 
+router.patch("/permission/:fileId", async (req, res, next) => {
+  try {
+    const { fileId } = req.params;
+    const { currentUserRole, selectedRole, userId } = req.body;
+
+    const file = await File.findById(fileId);
+
+    if (currentUserRole !== "팀장") {
+      return res
+        .status(403)
+        .json({ message: "당신은 권한 설정에 대한 권한이 없습니다" });
+    }
+
+    if (!file) {
+      return res.status(412).json({ message: "파일이 존재하지 않습니다" });
+    }
+
+    file.visibleTo = selectedRole;
+
+    await file.save();
+
+    const user = await User.findById(userId)
+      .populate({
+        path: "teams",
+        populate: [
+          {
+            path: "members.user",
+          },
+          {
+            path: "ownedFolders",
+          },
+          {
+            path: "ownedFiles",
+          },
+          {
+            path: "joinRequests.user",
+          },
+        ],
+      })
+      .populate({
+        path: "notifications",
+        populate: {
+          path: "team",
+        },
+      });
+
+    res
+      .status(201)
+      .json({ message: "파일 권한이 성공적으로 변경되었습니다", user });
+  } catch (error) {
+    res.status(404).json({ error: "파일 권한 설정에 문제가 생겼습니다" });
+  }
+});
+
 module.exports = router;
