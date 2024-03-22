@@ -24,7 +24,7 @@ router.patch("/file/:fileId", async (req, res) => {
       currentUserRole !== "팀장" &&
       file.visibleTo !== currentUserRole
     ) {
-      res
+      return res
         .status(201)
         .json({ message: "당신은 해당 파일의 접근 권한이 없습니다" });
     }
@@ -107,7 +107,7 @@ router.patch("/folder/:folderId", async (req, res) => {
       folder.visibleTo !== currentUserRole
     ) {
       res
-        .status(201)
+        .status(403)
         .json({ message: "당신은 해당 파일의 접근 권한이 없습니다" });
     }
 
@@ -279,7 +279,7 @@ router.delete("/file/:fileId/delete", async (req, res) => {
       file.visibleTo !== currentUserRole
     ) {
       res
-        .status(201)
+        .status(403)
         .json({ message: "당신은 해당 파일에 접근 권한이 없습니다" });
     }
 
