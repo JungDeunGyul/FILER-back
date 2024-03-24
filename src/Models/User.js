@@ -6,8 +6,6 @@ const userSchema = new Schema({
   nickname: { type: String, required: true },
   iconpath: { type: String },
   teams: [{ type: Schema.Types.ObjectId, ref: "Team" }],
-  accessibleFolders: [{ type: Schema.Types.ObjectId, ref: "Folder" }],
-  accessibleFiles: [{ type: Schema.Types.ObjectId, ref: "File" }],
   notifications: [
     {
       type: {
