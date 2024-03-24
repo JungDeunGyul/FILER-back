@@ -22,6 +22,12 @@ router.patch("/:notificationId", async (req, res) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
           },
           {
             path: "joinRequests.user",
