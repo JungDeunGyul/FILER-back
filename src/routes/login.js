@@ -21,6 +21,12 @@ router.post("/", verifyToken, async (req, res, next) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
           },
           {
             path: "joinRequests.user",

@@ -63,6 +63,12 @@ router.patch("/file/:fileId", async (req, res) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
           },
           {
             path: "joinRequests.user",
@@ -149,6 +155,12 @@ router.patch("/folder/:folderId", async (req, res) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
           },
           {
             path: "joinRequests.user",

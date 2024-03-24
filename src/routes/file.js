@@ -69,6 +69,12 @@ router.patch("/:fileId/move-to-folder/:folderId", async (req, res) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
           },
           {
             path: "joinRequests.user",
@@ -102,9 +108,15 @@ router.post(
       const { folderId, userId } = req.params;
       const uploadedFile = req.file;
 
-      const folder = await Folder.findOne({ _id: folderId })
+      const folder = await Folder.findById(folderId)
         .populate({
           path: "files",
+          populate: {
+            path: "versions",
+            populate: {
+              path: "file",
+            },
+          },
         })
         .populate({ path: "subFolders" });
 
@@ -116,21 +128,64 @@ router.post(
         return res.status(412).json({ message: "파일 이름이 이미 존재합니다" });
       }
 
+      const user = await User.findById(userId)
+        .populate({
+          path: "teams",
+          populate: [
+            {
+              path: "members.user",
+            },
+            {
+              path: "ownedFolders",
+            },
+            {
+              path: "ownedFiles",
+              populate: {
+                path: "versions",
+                populate: {
+                  path: "file",
+                },
+              },
+            },
+            {
+              path: "joinRequests.user",
+            },
+          ],
+        })
+        .populate({
+          path: "notifications",
+          populate: {
+            path: "team",
+          },
+        });
+      const teamId = folder.ownerTeam.toString();
+
       const newFile = await File.create({
         name: uploadedFile.originalname,
         size: uploadedFile.size,
         type: uploadedFile.mimetype,
-        ownerTeam: folder.ownerTeam.toString(),
-        uploadUser: userId,
+        ownerTeam: teamId,
+        uploadUser: user.nickname,
         filePath: uploadedFile.location,
         s3Key: uploadedFile.key,
       });
 
+      const newFileId = newFile._id;
+      newFile.versions.push({
+        versionNumber: 1,
+        file: newFileId,
+      });
+
       folder.files.push(newFile);
 
+      for (const file of folder.files) {
+        await File.populate(file, { path: "versions.file" });
+      }
+
+      await newFile.save();
       await folder.save();
 
-      res.status(201).json({ message: "File uploaded successfully", folder });
+      res.status(201).json({ message: "File uploaded successfully", user });
     } catch (error) {
       res.status(404).json({ error: "Failed to upload File" });
     }
@@ -170,6 +225,12 @@ router.patch("/permission/:fileId", async (req, res, next) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
           },
           {
             path: "joinRequests.user",
@@ -190,5 +251,79 @@ router.patch("/permission/:fileId", async (req, res, next) => {
     res.status(404).json({ error: "파일 권한 설정에 문제가 생겼습니다" });
   }
 });
+
+router.patch(
+  "/:fileId/updatefile/:userId",
+  s3Uploader.single("file"),
+  async (req, res, next) => {
+    try {
+      const { fileId, userId } = req.params;
+      const uploadedFile = req.file;
+
+      const file = await File.findById(fileId);
+
+      const teamId = file.ownerTeam.toString();
+      const currentUser = await User.findById(userId);
+
+      const newFile = await File.create({
+        name: uploadedFile.originalname,
+        size: uploadedFile.size,
+        type: uploadedFile.mimetype,
+        ownerTeam: teamId,
+        uploadUser: currentUser.nickname,
+        filePath: uploadedFile.location,
+        s3Key: uploadedFile.key,
+      });
+
+      const newFileId = newFile._id;
+
+      file.versions.push({
+        versionNumber:
+          file.versions[file.versions.length - 1].versionNumber + 1,
+        file: newFileId,
+      });
+
+      await file.save();
+      await newFile.save();
+
+      const user = await User.findById(userId)
+        .populate({
+          path: "teams",
+          populate: [
+            {
+              path: "members.user",
+            },
+            {
+              path: "ownedFolders",
+            },
+            {
+              path: "ownedFiles",
+              populate: {
+                path: "versions",
+                populate: {
+                  path: "file",
+                },
+              },
+            },
+            {
+              path: "joinRequests.user",
+            },
+          ],
+        })
+        .populate({
+          path: "notifications",
+          populate: {
+            path: "team",
+          },
+        });
+
+      res
+        .status(201)
+        .json({ message: "파일 권한이 성공적으로 변경되었습니다", user });
+    } catch (error) {
+      res.status(404).json({ error: "파일 권한 설정에 문제가 생겼습니다" });
+    }
+  },
+);
 
 module.exports = router;

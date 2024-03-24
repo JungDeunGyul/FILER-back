@@ -12,6 +12,12 @@ router.get("/:folderId", async (req, res) => {
     const folder = await Folder.findOne({ _id: folderId })
       .populate({
         path: "files",
+        populate: {
+          path: "versions",
+          populate: {
+            path: "file",
+          },
+        },
       })
       .populate({ path: "subFolders" });
 
@@ -110,6 +116,12 @@ router.patch("/permission/:folderId", async (req, res, next) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
           },
           {
             path: "joinRequests.user",

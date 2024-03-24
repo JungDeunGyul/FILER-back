@@ -174,20 +174,23 @@ router.post(
         size: uploadedFile.size,
         type: uploadedFile.mimetype,
         ownerTeam: teamId,
-        uploadUser: userId,
+        uploadUser: user.nickname,
         filePath: uploadedFile.location,
         s3Key: uploadedFile.key,
       });
 
+      const newFileId = newFile._id;
+
       newFile.versions.push({
-        versionNumber: "1",
-        filePath: uploadedFile.location,
+        versionNumber: 1,
+        file: newFileId,
       });
 
       team.ownedFiles.push(newFile);
 
       await team.save();
       await user.save();
+      await newFile.save();
 
       const updatedUser = await User.findOne({ _id: userId })
         .populate({
@@ -201,6 +204,12 @@ router.post(
             },
             {
               path: "ownedFiles",
+              populate: {
+                path: "versions",
+                populate: {
+                  path: "file",
+                },
+              },
             },
             {
               path: "joinRequests.user",
@@ -272,6 +281,12 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
           },
           {
             path: "joinRequests.user",
@@ -324,6 +339,12 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
           },
           {
             path: "joinRequests.user",
@@ -368,6 +389,12 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
               },
               {
                 path: "ownedFiles",
+                populate: {
+                  path: "versions",
+                  populate: {
+                    path: "file",
+                  },
+                },
               },
               {
                 path: "joinRequests.user",
@@ -482,6 +509,12 @@ router.post("/:teamName/new/:userId", async (req, res, next) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
           },
           {
             path: "joinRequests.user",
@@ -550,6 +583,12 @@ router.delete("/:teamName/withdraw/:userId", async (req, res, next) => {
         },
         {
           path: "ownedFiles",
+          populate: {
+            path: "versions",
+            populate: {
+              path: "file",
+            },
+          },
         },
         {
           path: "joinRequests.user",
