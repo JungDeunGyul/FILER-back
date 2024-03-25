@@ -614,7 +614,7 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
 
     if (currentUserRole !== "팀장") {
       return res
-        .status(201)
+        .status(403)
         .json({ message: "당신은 팀 관리 권한이 없습니다" });
     }
 
@@ -676,7 +676,7 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
 
       if (!teamToUpdate) {
         return res
-          .status(404)
+          .status(403)
           .json({ message: "선택된 팀을 찾을 수 없습니다" });
       }
 
@@ -690,7 +690,7 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
 
       if (!memberToUpdate) {
         return res
-          .status(404)
+          .status(403)
           .json({ message: "선택된 멤버를 팀에서 찾을 수 없습니다" });
       }
 
@@ -732,7 +732,7 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
           },
         });
 
-      return res.status(200).json({
+      return res.status(201).json({
         message: "멤버의 권한이 성공적으로 변경되었습니다",
         currentUser,
       });
@@ -744,7 +744,7 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
 
     if (!member) {
       return res
-        .status(404)
+        .status(403)
         .json({ message: "선택된 멤버를 팀에서 찾을 수 없습니다" });
     }
 
@@ -755,7 +755,7 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
     );
 
     if (!teamToUpdate) {
-      return res.status(404).json({ message: "선택된 팀을 찾을 수 없습니다" });
+      return res.status(403).json({ message: "선택된 팀을 찾을 수 없습니다" });
     }
 
     const memberToUpdate = teamToUpdate.members.find(
@@ -800,7 +800,7 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
         },
       });
 
-    return res.status(200).json({
+    return res.status(201).json({
       message: "멤버의 권한이 성공적으로 변경되었습니다",
       currentUser,
     });
