@@ -132,6 +132,7 @@ router.post(
       const { userId, teamId } = req.params;
       const uploadedFile = req.file;
 
+      const decodedFileName = decodeURIComponent(uploadedFile.originalname);
       const user = await User.findOne({ _id: userId });
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -170,7 +171,7 @@ router.post(
       }
 
       const newFile = await File.create({
-        name: uploadedFile.originalname,
+        name: decodedFileName,
         size: uploadedFile.size,
         type: uploadedFile.mimetype,
         ownerTeam: teamId,

@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const { User } = require("../models/User");
 const { File } = require("../models/File");
 const { Folder } = require("../models/Folder");
@@ -12,7 +13,7 @@ router.patch("/:fileId/move-to-folder/:folderId", async (req, res) => {
     const { fileId, folderId } = req.params;
     const { userId, currentUserRole } = req.body;
 
-    const file = await File.findOne({ _id: fileId });
+    const file = await File.findById(fileId);
 
     if (!file) {
       return res.status(404).json({ message: "file not found" });
@@ -28,7 +29,7 @@ router.patch("/:fileId/move-to-folder/:folderId", async (req, res) => {
         .json({ message: "User does not have authority for the file" });
     }
 
-    const folder = await Folder.findOne({ _id: folderId }).populate({
+    const folder = await Folder.findById(folderId).populate({
       path: "ownerTeam",
     });
 
@@ -107,6 +108,7 @@ router.post(
     try {
       const { folderId, userId } = req.params;
       const uploadedFile = req.file;
+      const decodedFileName = decodeURIComponent(uploadedFile.originalname);
 
       const folder = await Folder.findById(folderId)
         .populate({
@@ -161,7 +163,7 @@ router.post(
       const teamId = folder.ownerTeam.toString();
 
       const newFile = await File.create({
-        name: uploadedFile.originalname,
+        name: decodedFileName,
         size: uploadedFile.size,
         type: uploadedFile.mimetype,
         ownerTeam: teamId,
@@ -185,7 +187,9 @@ router.post(
       await newFile.save();
       await folder.save();
 
-      res.status(201).json({ message: "File uploaded successfully", user });
+      res
+        .status(201)
+        .json({ message: "File uploaded successfully", user, folder });
     } catch (error) {
       res.status(404).json({ error: "Failed to upload File" });
     }
@@ -259,6 +263,7 @@ router.patch(
     try {
       const { fileId, userId } = req.params;
       const uploadedFile = req.file;
+      const decodedFileName = decodeURIComponent(uploadedFile.originalname);
 
       const file = await File.findById(fileId);
 
@@ -266,7 +271,7 @@ router.patch(
       const currentUser = await User.findById(userId);
 
       const newFile = await File.create({
-        name: uploadedFile.originalname,
+        name: decodedFileName,
         size: uploadedFile.size,
         type: uploadedFile.mimetype,
         ownerTeam: teamId,
@@ -319,9 +324,9 @@ router.patch(
 
       res
         .status(201)
-        .json({ message: "파일 권한이 성공적으로 변경되었습니다", user });
+        .json({ message: "파일이 성공적으로 업로드 되었습니다.", user });
     } catch (error) {
-      res.status(404).json({ error: "파일 권한 설정에 문제가 생겼습니다" });
+      res.status(404).json({ error: "파일 업로드에 문제가 생겼습니다" });
     }
   },
 );
