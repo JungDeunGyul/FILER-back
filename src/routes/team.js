@@ -447,6 +447,7 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
     }
 
     await team.save();
+    await user.save();
   } catch (error) {
     return res.status(400).json({ message: "Faild, team join request" });
   }
