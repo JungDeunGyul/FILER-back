@@ -9,7 +9,9 @@ const s3Uploader = multer({
     bucket: process.env.AWS_BUCKET,
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
-      cb(null, Date.now().toString());
+      const originalFilename = decodeURIComponent(file.originalname);
+
+      cb(null, Date.now().toString() + originalFilename);
     },
   }),
 });
