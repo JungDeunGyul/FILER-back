@@ -99,7 +99,7 @@ router.patch("/folder/:folderId", async (req, res) => {
     ) {
       res
         .status(201)
-        .json({ message: "당신은 해당 파일의 접근 권한이 없습니다" });
+        .json({ message: "당신은 해당 폴더의 접근 권한이 없습니다" });
     }
 
     const teamId = folder.ownerTeam._id.toString();
