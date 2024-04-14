@@ -538,7 +538,7 @@ router.post("/:teamName/new/:userId", async (req, res, next) => {
   }
 });
 
-router.delete("/:teamName/withdraw/:userId", async (req, res, next) => {
+router.delete("/:teamId/withdraw/:userId", async (req, res, next) => {
   const { teamId, userId } = req.params;
   const userRole = req.body.currentUserRole;
 
@@ -548,6 +548,7 @@ router.delete("/:teamName/withdraw/:userId", async (req, res, next) => {
   }
 
   const team = await Team.findOne({ _id: teamId });
+  const teamName = team.name;
 
   if (!team) {
     return res.status(404).json({ message: "Team not found" });
