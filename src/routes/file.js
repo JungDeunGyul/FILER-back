@@ -5,6 +5,7 @@ const { User } = require("../models/User");
 const { File } = require("../models/File");
 const { Folder } = require("../models/Folder");
 const { Team } = require("../models/Team");
+const { Comment } = require("../models/Comment");
 
 const s3Uploader = require("../middleware/s3Uploader");
 
@@ -330,5 +331,76 @@ router.patch(
     }
   },
 );
+
+router.post("/:fileId/newcomment/:userId", async (req, res, next) => {
+  try {
+    const { fileId, userId } = req.params;
+    const comment = req.body.comment;
+
+    const file = await File.findById(fileId);
+
+    if (!file) {
+      return res.status(404).json({ message: "해당 파일은 존재하지 않습니다" });
+    }
+
+    const newComment = await Comment.create({
+      fileId,
+      user: userId,
+      content: comment,
+    });
+
+    file.comments.push(newComment._id);
+
+    await newComment.save();
+    await file.save();
+
+    const user = await User.findById(userId)
+      .populate({
+        path: "teams",
+        populate: [
+          {
+            path: "members.user",
+          },
+          {
+            path: "ownedFolders",
+          },
+          {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
+          },
+          {
+            path: "ownedFiles",
+            populate: {
+              path: "comments",
+              populate: {
+                path: "user",
+              },
+            },
+          },
+          {
+            path: "joinRequests.user",
+          },
+        ],
+      })
+      .populate({
+        path: "notifications",
+        populate: {
+          path: "team",
+        },
+      });
+
+    user.comments.push(newComment._id);
+    await user.save();
+
+    res.status(201).json({ message: "댓글이 성공적으로 달렸습니다", user });
+  } catch (error) {
+    res.status(404).json({ error: "파일 업로드에 문제가 생겼습니다" });
+  }
+});
 
 module.exports = router;
