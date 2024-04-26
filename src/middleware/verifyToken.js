@@ -1,6 +1,8 @@
 const admin = require("firebase-admin");
 
-const serviceAccount = require(process.env.GOOGLE_CREDENTIALS);
+const base64Encoded = `${process.env.FIREBASE_ADMIN_SDK}=`;
+const decodedJson = Buffer.from(base64Encoded, "base64").toString("utf-8");
+const serviceAccount = JSON.parse(decodedJson);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),

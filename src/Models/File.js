@@ -15,7 +15,7 @@ const fileSchema = new Schema({
   ownerTeam: { type: Schema.Types.ObjectId, ref: "Team", required: true },
   parentFolder: { type: Schema.Types.ObjectId, ref: "Folder" },
   uploadUser: { type: String, required: true },
-  comments: { type: Schema.Types.ObjectId, ref: "Comments" },
+  comments: [{ type: Schema.Types.ObjectId, ref: "Comment" }],
   filePath: { type: String, required: true },
   s3Key: { type: String },
   versions: [versionSchema],

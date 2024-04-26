@@ -29,6 +29,15 @@ router.post("/", verifyToken, async (req, res, next) => {
             },
           },
           {
+            path: "ownedFiles",
+            populate: {
+              path: "comments",
+              populate: {
+                path: "user",
+              },
+            },
+          },
+          {
             path: "joinRequests.user",
           },
         ],
