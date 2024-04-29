@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { User } = require("../models/User");
+const path = require("path");
+
+const { User } = require(path.resolve(__dirname, "../Models/User"));
 
 router.patch("/:notificationId", async (req, res) => {
   try {
@@ -26,6 +28,21 @@ router.patch("/:notificationId", async (req, res) => {
               path: "versions",
               populate: {
                 path: "file",
+              },
+            },
+          },
+          {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
               },
             },
           },

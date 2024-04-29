@@ -1,11 +1,15 @@
-const indexRouter = require("../routes/index");
-const loginRouter = require("../routes/login");
-const teamRouter = require("../routes/team");
-const notificationRouter = require("../routes/notification");
-const folderRouter = require("../routes/folder");
-const fileRouter = require("../routes/file");
-const trashRouter = require("../routes/trash");
-const restoreRouter = require("../routes/restore");
+const path = require("path");
+
+const indexRouter = require(path.resolve(__dirname, "../routes/index"));
+const loginRouter = require(path.resolve(__dirname, "../routes/login"));
+const teamRouter = require(path.resolve(__dirname, "../routes/team"));
+const notificationRouter = require(
+  path.resolve(__dirname, "../routes/notification"),
+);
+const folderRouter = require(path.resolve(__dirname, "../routes/folder"));
+const fileRouter = require(path.resolve(__dirname, "../routes/file"));
+const trashRouter = require(path.resolve(__dirname, "../routes/trash"));
+const restoreRouter = require(path.resolve(__dirname, "../routes/restore"));
 
 async function routerLoader(app) {
   app.use("/", indexRouter);

@@ -1,17 +1,22 @@
 const express = require("express");
 const router = express.Router();
+const path = require("path");
 
-const s3client = require("../../aws/s3Client");
-const s3Uploader = require("../middleware/s3Uploader");
+const s3client = require(path.resolve(__dirname, "../../aws/s3Client"));
+const s3Uploader = require(path.resolve(__dirname, "../middleware/s3Uploader"));
 const { GetObjectCommand } = require("@aws-sdk/client-s3");
 
-const removeJoinRequest = require("../utils/removeJoinReqest");
-const deleteTeamResources = require("../utils/deleteTeamResources");
+const removeJoinRequest = require(
+  path.resolve(__dirname, "../utils/removeJoinReqest"),
+);
+const deleteTeamResources = require(
+  path.resolve(__dirname, "../utils/deleteTeamResources"),
+);
 
-const { User } = require("../models/User");
-const { Team } = require("../models/Team");
-const { Folder } = require("../models/Folder");
-const { File } = require("../models/File");
+const { User } = require(path.resolve(__dirname, "../Models/User"));
+const { Team } = require(path.resolve(__dirname, "../Models/Team"));
+const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
+const { File } = require(path.resolve(__dirname, "../Models/File"));
 
 let clientTeamJoinRequestSSE = [];
 
@@ -103,6 +108,27 @@ router.post("/:teamName/createfolder/:userId", async (req, res, next) => {
           },
           {
             path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+              },
+            },
+          },
+          {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
+              },
+            },
           },
           {
             path: "joinRequests.user",
@@ -213,6 +239,21 @@ router.post(
               },
             },
             {
+              path: "ownedFiles",
+              populate: {
+                path: "versions",
+                populate: {
+                  path: "file",
+                  populate: {
+                    path: "comments",
+                    populate: {
+                      path: "user",
+                    },
+                  },
+                },
+              },
+            },
+            {
               path: "joinRequests.user",
             },
           ],
@@ -290,6 +331,21 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
             },
           },
           {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
+              },
+            },
+          },
+          {
             path: "joinRequests.user",
           },
         ],
@@ -348,6 +404,21 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
             },
           },
           {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
+              },
+            },
+          },
+          {
             path: "joinRequests.user",
           },
         ],
@@ -394,6 +465,21 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
                   path: "versions",
                   populate: {
                     path: "file",
+                  },
+                },
+              },
+              {
+                path: "ownedFiles",
+                populate: {
+                  path: "versions",
+                  populate: {
+                    path: "file",
+                    populate: {
+                      path: "comments",
+                      populate: {
+                        path: "user",
+                      },
+                    },
                   },
                 },
               },
@@ -519,6 +605,21 @@ router.post("/:teamName/new/:userId", async (req, res, next) => {
             },
           },
           {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
+              },
+            },
+          },
+          {
             path: "joinRequests.user",
           },
         ],
@@ -594,6 +695,21 @@ router.delete("/:teamId/withdraw/:userId", async (req, res, next) => {
           },
         },
         {
+          path: "ownedFiles",
+          populate: {
+            path: "versions",
+            populate: {
+              path: "file",
+              populate: {
+                path: "comments",
+                populate: {
+                  path: "user",
+                },
+              },
+            },
+          },
+        },
+        {
           path: "joinRequests.user",
         },
       ],
@@ -641,6 +757,21 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
               path: "versions",
               populate: {
                 path: "file",
+              },
+            },
+          },
+          {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
               },
             },
           },
@@ -724,6 +855,21 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
               },
             },
             {
+              path: "ownedFiles",
+              populate: {
+                path: "versions",
+                populate: {
+                  path: "file",
+                  populate: {
+                    path: "comments",
+                    populate: {
+                      path: "user",
+                    },
+                  },
+                },
+              },
+            },
+            {
               path: "joinRequests.user",
             },
           ],
@@ -734,7 +880,6 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
             path: "team",
           },
         });
-
       return res.status(201).json({
         message: "멤버의 권한이 성공적으로 변경되었습니다",
         currentUser,
@@ -788,6 +933,21 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
               path: "versions",
               populate: {
                 path: "file",
+              },
+            },
+          },
+          {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
               },
             },
           },

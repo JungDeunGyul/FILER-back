@@ -1,9 +1,11 @@
 const express = require("express");
-
 const router = express.Router();
+const path = require("path");
 
-const { User } = require("../models/User");
-const verifyToken = require("../middleware/verifyToken");
+const { User } = require(path.resolve(__dirname, "../Models/User.js"));
+const verifyToken = require(
+  path.resolve(__dirname, "../middleware/verifyToken"),
+);
 
 router.post("/", verifyToken, async (req, res, next) => {
   try {
@@ -31,9 +33,15 @@ router.post("/", verifyToken, async (req, res, next) => {
           {
             path: "ownedFiles",
             populate: {
-              path: "comments",
+              path: "versions",
               populate: {
-                path: "user",
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
               },
             },
           },
