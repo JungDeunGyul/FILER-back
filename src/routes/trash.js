@@ -1,12 +1,15 @@
 const express = require("express");
 const router = express.Router();
-const { File } = require("../models/File");
-const { Folder } = require("../models/Folder");
-const { User } = require("../models/User");
-const { Team } = require("../models/Team");
-const { TrashBin } = require("../models/TrashBin");
+const path = require("path");
 
-const deleteFolderAndSubFolders = require("../utils/deleteFolderAndSubFolders");
+const { File } = require(path.resolve(__dirname, "../Models/File"));
+const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
+const { User } = require(path.resolve(__dirname, "../Models/User"));
+const { Team } = require(path.resolve(__dirname, "../Models/Team"));
+const { TrashBin } = require(path.resolve(__dirname, "../Models/TrashBin"));
+const deleteFolderAndSubFolders = require(
+  path.resolve(__dirname, "../utils/deleteFolderAndSubFolders"),
+);
 
 router.patch("/file/:fileId", async (req, res) => {
   try {
@@ -67,6 +70,21 @@ router.patch("/file/:fileId", async (req, res) => {
               path: "versions",
               populate: {
                 path: "file",
+              },
+            },
+          },
+          {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
               },
             },
           },
@@ -159,6 +177,21 @@ router.patch("/folder/:folderId", async (req, res) => {
               path: "versions",
               populate: {
                 path: "file",
+              },
+            },
+          },
+          {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
               },
             },
           },
