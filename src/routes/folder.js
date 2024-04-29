@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { User } = require("../models/User");
-const { Folder } = require("../models/Folder");
-const { Team } = require("../models/Team");
+const path = require("path");
+
+const { User } = require(path.resolve(__dirname, "../Models/User"));
+const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
+const { Team } = require(path.resolve(__dirname, "../Models/Team"));
 
 router.get("/:folderId", async (req, res) => {
   try {
@@ -120,6 +122,21 @@ router.patch("/permission/:folderId", async (req, res, next) => {
               path: "versions",
               populate: {
                 path: "file",
+              },
+            },
+          },
+          {
+            path: "ownedFiles",
+            populate: {
+              path: "versions",
+              populate: {
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
               },
             },
           },

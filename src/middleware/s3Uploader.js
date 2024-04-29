@@ -1,7 +1,8 @@
 const multer = require("multer");
 const multerS3 = require("multer-s3");
+const path = require("path");
 
-const s3client = require("../../aws/s3Client");
+const s3client = require(path.resolve(__dirname, "../../aws/s3Client"));
 
 const s3Uploader = multer({
   storage: multerS3({

@@ -1,4 +1,6 @@
-const app = require("../app");
+const path = require("path");
+
+const app = require(path.resolve(__dirname, "../app"));
 const debug = require("debug")("filer-back:server");
 const http = require("http");
 

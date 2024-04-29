@@ -1,13 +1,14 @@
 const express = require("express");
 const router = express.Router();
+const path = require("path");
 
-const { User } = require("../models/User");
-const { File } = require("../models/File");
-const { Folder } = require("../models/Folder");
-const { Team } = require("../models/Team");
-const { Comment } = require("../models/Comment");
+const { User } = require(path.resolve(__dirname, "../Models/User"));
+const { File } = require(path.resolve(__dirname, "../Models/File"));
+const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
+const { Team } = require(path.resolve(__dirname, "../Models/Team"));
+const { Comment } = require(path.resolve(__dirname, "../Models/Comment"));
 
-const s3Uploader = require("../middleware/s3Uploader");
+const s3Uploader = require(path.resolve(__dirname, "../middleware/s3Uploader"));
 
 router.patch("/:fileId/move-to-folder/:folderId", async (req, res) => {
   try {
@@ -376,9 +377,15 @@ router.post("/:fileId/newcomment/:userId", async (req, res, next) => {
           {
             path: "ownedFiles",
             populate: {
-              path: "comments",
+              path: "versions",
               populate: {
-                path: "user",
+                path: "file",
+                populate: {
+                  path: "comments",
+                  populate: {
+                    path: "user",
+                  },
+                },
               },
             },
           },
