@@ -565,9 +565,9 @@ router.post("/:teamName/new/:userId", async (req, res, next) => {
 
     const existingTeam = await Team.findOne({ name: teamName });
     if (existingTeam) {
-      return res
-        .status(400)
-        .json({ message: "Failed to create team. Same team name issue" });
+      return res.status(400).json({
+        message: "똑같은 팀 이름이 존재합니다, 다시 팀 이름을 입력해주세요.",
+      });
     }
 
     const newTeam = await Team.create({
