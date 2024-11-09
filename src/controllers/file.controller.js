@@ -1,6 +1,7 @@
 const path = require("path");
 
 const { User } = require(path.resolve(__dirname, "../Models/User"));
+const { Team } = require(path.resolve(__dirname, "../Models/Team"));
 const { File } = require(path.resolve(__dirname, "../Models/File"));
 const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
 
@@ -8,7 +9,9 @@ const { populateUserDetails } = require(
   path.resolve(__dirname, "../utils/populateHelpers"),
 );
 
-const { checkIsItem } = require(path.resolve(__dirname, "../utils/itemUtils"));
+const { checkIsItem, handleItemAccess } = require(
+  path.resolve(__dirname, "../utils/itemUtils"),
+);
 
 const { createFile } = require(path.resolve(__dirname, "../utils/createFile"));
 
@@ -131,8 +134,58 @@ const setFilePermission = async (req, res, next) => {
   }
 };
 
+const moveFileToFolder = async (req, res, next) => {
+  try {
+    const { fileId, folderId } = req.params;
+    const { userId, currentUserRole } = req.body;
+
+    const file = await File.findById(fileId);
+    const ITEM_TYPE1 = "파일";
+
+    checkIsItem(file, ITEM_TYPE1);
+    handleItemAccess(file, currentUserRole, ITEM_TYPE1, res);
+
+    const folder = await Folder.findById(folderId).populate({
+      path: "ownerTeam",
+    });
+    const ITEM_TYPE2 = "폴더";
+
+    checkIsItem(folder, ITEM_TYPE2);
+    handleItemAccess(folder, currentUserRole, ITEM_TYPE2, res);
+
+    const previousFolder = await Folder.findOne({ files: fileId });
+    if (previousFolder) {
+      previousFolder.files = previousFolder.files.filter(
+        (file) => file.toString() !== fileId,
+      );
+
+      await previousFolder.save();
+    }
+    folder.files.push(file);
+
+    const team = await Team.findOne({ name: folder.ownerTeam.name });
+    team.ownedFiles = team.ownedFiles.filter(
+      (file) => file.toString() !== fileId,
+    );
+
+    await team.save();
+    await folder.save();
+
+    const user = await User.findOne({ _id: userId }).populate(
+      populateUserDetails(),
+    );
+
+    return res
+      .status(201)
+      .json({ message: "File moved to folder successfully", user });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   uploadFileInFolder,
   uploadFileInFile,
   setFilePermission,
+  moveFileToFolder,
 };
