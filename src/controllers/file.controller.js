@@ -8,6 +8,8 @@ const { populateUserDetails } = require(
   path.resolve(__dirname, "../utils/populateHelpers"),
 );
 
+const { checkIsItem } = require(path.resolve(__dirname, "../utils/itemUtils"));
+
 const { createFile } = require(path.resolve(__dirname, "../utils/createFile"));
 
 const uploadFileInFile = async (req, res, next) => {
@@ -99,7 +101,38 @@ const uploadFileInFolder = async (req, res, next) => {
   }
 };
 
+const setFilePermission = async (req, res, next) => {
+  try {
+    const { fileId } = req.params;
+    const { currentUserRole, selectedRole, userId } = req.body;
+
+    const file = await File.findById(fileId);
+    const ITEM_TYPE = "파일";
+
+    checkIsItem(file, ITEM_TYPE);
+
+    if (currentUserRole !== "팀장") {
+      return res
+        .status(403)
+        .json({ message: "당신은 권한 설정에 대한 권한이 없습니다" });
+    }
+
+    file.visibleTo = selectedRole;
+
+    await file.save();
+
+    const user = await User.findById(userId).populate(populateUserDetails());
+
+    res
+      .status(201)
+      .json({ message: "파일 권한이 성공적으로 변경되었습니다", user });
+  } catch (error) {
+    res.status(404).json({ error: "파일 권한 설정에 문제가 생겼습니다" });
+  }
+};
+
 module.exports = {
   uploadFileInFolder,
   uploadFileInFile,
+  setFilePermission,
 };
