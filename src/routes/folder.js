@@ -4,54 +4,13 @@ const path = require("path");
 
 const { User } = require(path.resolve(__dirname, "../Models/User"));
 const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
-const { Team } = require(path.resolve(__dirname, "../Models/Team"));
 
-const { getFolder } = require(
+const { getFolder, createFolderInFolder } = require(
   path.resolve(__dirname, "../controllers/folder.controller"),
 );
 
 router.get("/:folderId", getFolder);
-
-router.post("/:folderId/new", async (req, res) => {
-  try {
-    const { folderId } = req.params;
-    const { folderName, teamName } = req.body;
-
-    const folder = await Folder.findOne({ _id: folderId })
-      .populate({
-        path: "files",
-      })
-      .populate({ path: "parentFolder" })
-      .populate({ path: "subFolders" });
-
-    const team = await Team.findOne({ name: teamName }).populate({
-      path: "ownedFolders",
-    });
-
-    const isFolder = team.ownedFolders.some(
-      (folder) => folder.name === folderName,
-    );
-
-    if (isFolder) {
-      return res.status(412).json({ message: "폴더 이름이 이미 존재합니다" });
-    }
-
-    const newFolder = await Folder.create({
-      name: folderName,
-      ownerTeam: team._id,
-      parentFolder: folderId,
-    });
-
-    folder.subFolders.push(newFolder);
-
-    await folder.save();
-    await newFolder.save();
-
-    res.status(201).json({ message: "Folder created successfully", folder });
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+router.post("/:folderId/new", createFolderInFolder);
 
 router.patch("/permission/:folderId", async (req, res, next) => {
   try {
