@@ -14,6 +14,10 @@ const { populateUserDetails } = require(
   path.resolve(__dirname, "../utils/populateHelpers"),
 );
 
+const deleteFolderAndSubFolders = require(
+  path.resolve(__dirname, "../utils/deleteFolderAndSubFolders"),
+);
+
 const getTrashBin = async (req, res, next) => {
   try {
     const { teamId } = req.params;
@@ -127,8 +131,68 @@ const moveTeamFolderToTrashBin = async (req, res, next) => {
   }
 };
 
+const removeFile = async (req, res, next) => {
+  try {
+    const { fileId } = req.params;
+    const { currentUserRole } = req.body;
+
+    const file = await File.findOne({ _id: fileId });
+    const ITEM_TYPE = "파일";
+
+    checkIsItem(file, ITEM_TYPE);
+    handleItemAccess(file, currentUserRole, ITEM_TYPE, res);
+
+    const teamId = file.ownerTeam._id.toString();
+    const trashBin = await getOrUpdateTrashBin(teamId, fileId, ITEM_TYPE);
+
+    await file.deleteOne();
+
+    return res.status(200).json({ message: "File has been removed", trashBin });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const removeFolder = async (req, res, next) => {
+  try {
+    const { folderId } = req.params;
+    const { currentUserRole } = req.body;
+
+    const folder = await Folder.findOne({ _id: folderId })
+      .populate("files")
+      .populate("subFolders");
+    const ITEM_TYPE = "폴더";
+
+    checkIsItem(folder, ITEM_TYPE);
+    handleItemAccess(folder, currentUserRole, ITEM_TYPE, res);
+
+    const teamId = folder.ownerTeam._id.toString();
+    const trashBin = await getOrUpdateTrashBin(teamId, folderId, ITEM_TYPE);
+
+    trashBin.folders = trashBin.folders.filter(
+      (trashItem) => trashItem.item._id.toString() !== folderId,
+    );
+
+    for (const file of folder.files) {
+      await file.deleteOne();
+    }
+
+    await deleteFolderAndSubFolders(folderId);
+
+    await trashBin.save();
+
+    return res
+      .status(200)
+      .json({ message: "Folder has been removed", trashBin });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 module.exports = {
   getTrashBin,
   moveTeamFileToTrashBin,
   moveTeamFolderToTrashBin,
+  removeFile,
+  removeFolder,
 };
