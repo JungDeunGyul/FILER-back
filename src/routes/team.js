@@ -16,6 +16,7 @@ const {
   createFolderInTeam,
   uploadFileInTeam,
   withdrawTeam,
+  createTeam,
 } = require(path.resolve(__dirname, "../controllers/team.controller"));
 
 let clientTeamJoinRequestSSE = [];
@@ -283,105 +284,7 @@ router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
   }
 });
 
-router.post("/:teamName/new/:userId", async (req, res, next) => {
-  try {
-    const { userId, teamName } = req.params;
-
-    if (teamName.length < 3 || teamName.length > 10) {
-      return res
-        .status(400)
-        .json({ message: "Team name should be between 3 and 10 characters" });
-    }
-
-    const specialChars = '!@#$%^&*(),.?":{}|<>';
-    for (let i = 0; i < teamName.length; i++) {
-      if (specialChars.includes(teamName[i])) {
-        return res
-          .status(400)
-          .json({ message: "Team name cannot contain special characters" });
-      }
-    }
-
-    const user = await User.findOne({ _id: userId });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const existingTeam = await Team.findOne({ name: teamName });
-    if (existingTeam) {
-      return res.status(400).json({
-        message: "똑같은 팀 이름이 존재합니다, 다시 팀 이름을 입력해주세요.",
-      });
-    }
-
-    const newTeam = await Team.create({
-      name: teamName,
-      members: [
-        {
-          user: user._id,
-          role: "팀장",
-        },
-      ],
-      leader: user._id,
-    });
-
-    user.teams.push(newTeam._id);
-
-    await user.save();
-
-    const updatedUser = await User.findOne({ _id: userId })
-      .populate({
-        path: "teams",
-        populate: [
-          {
-            path: "members.user",
-          },
-          {
-            path: "ownedFolders",
-          },
-          {
-            path: "ownedFiles",
-            populate: {
-              path: "versions",
-              populate: {
-                path: "file",
-              },
-            },
-          },
-          {
-            path: "ownedFiles",
-            populate: {
-              path: "versions",
-              populate: {
-                path: "file",
-                populate: {
-                  path: "comments",
-                  populate: {
-                    path: "user",
-                  },
-                },
-              },
-            },
-          },
-          {
-            path: "joinRequests.user",
-          },
-        ],
-      })
-      .populate({
-        path: "notifications",
-        populate: {
-          path: "team",
-        },
-      });
-
-    return res
-      .status(201)
-      .json({ message: "Team created successfully", updatedUser });
-  } catch (error) {
-    return res.status(400).json({ message: "Failed to create Team" });
-  }
-});
+router.post("/:teamName/new/:userId", createTeam);
 
 router.delete("/:teamId/withdraw/:userId", withdrawTeam);
 

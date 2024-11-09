@@ -233,9 +233,69 @@ const withdrawTeam = async (req, res, next) => {
   }
 };
 
+const createTeam = async (req, res, next) => {
+  try {
+    const { userId, teamName } = req.params;
+
+    if (teamName.length < 3 || teamName.length > 10) {
+      return res
+        .status(400)
+        .json({ message: "Team name should be between 3 and 10 characters" });
+    }
+
+    const specialChars = '!@#$%^&*(),.?":{}|<>';
+    for (let i = 0; i < teamName.length; i++) {
+      if (specialChars.includes(teamName[i])) {
+        return res
+          .status(400)
+          .json({ message: "Team name cannot contain special characters" });
+      }
+    }
+
+    const user = await User.findOne({ _id: userId });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const existingTeam = await Team.findOne({ name: teamName });
+
+    if (existingTeam) {
+      return res.status(400).json({
+        message: "똑같은 팀 이름이 존재합니다, 다시 팀 이름을 입력해주세요.",
+      });
+    }
+
+    const newTeam = await Team.create({
+      name: teamName,
+      members: [
+        {
+          user: user._id,
+          role: "팀장",
+        },
+      ],
+      leader: user._id,
+    });
+
+    user.teams.push(newTeam._id);
+    await user.save();
+
+    const updatedUser = await User.findOne({ _id: userId }).populate(
+      populateUserDetails(),
+    );
+
+    return res
+      .status(201)
+      .json({ message: "Team created successfully", updatedUser });
+  } catch (error) {
+    return res.status(400).json({ message: "Failed to create Team" });
+  }
+};
+
 module.exports = {
   downloadFile,
   createFolderInTeam,
   uploadFileInTeam,
   withdrawTeam,
+  createTeam,
 };
