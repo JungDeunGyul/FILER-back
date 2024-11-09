@@ -10,8 +10,14 @@ const { Comment } = require(path.resolve(__dirname, "../Models/Comment"));
 
 const s3Uploader = require(path.resolve(__dirname, "../middleware/s3Uploader"));
 
-const { uploadFileInFolder } = require(
+const { uploadFileInFile, uploadFileInFolder } = require(
   path.resolve(__dirname, "../controllers/file.controller"),
+);
+
+router.patch(
+  "/:fileId/updatefile/:userId",
+  s3Uploader.single("file"),
+  uploadFileInFile,
 );
 
 router.post(
@@ -172,81 +178,6 @@ router.patch("/permission/:fileId", async (req, res, next) => {
     res.status(404).json({ error: "파일 권한 설정에 문제가 생겼습니다" });
   }
 });
-
-router.patch(
-  "/:fileId/updatefile/:userId",
-  s3Uploader.single("file"),
-  async (req, res, next) => {
-    try {
-      const { fileId, userId } = req.params;
-      const uploadedFile = req.file;
-      const decodedFileName = decodeURIComponent(uploadedFile.originalname);
-
-      const file = await File.findById(fileId);
-
-      const teamId = file.ownerTeam.toString();
-      const currentUser = await User.findById(userId);
-
-      const newFile = await File.create({
-        name: decodedFileName,
-        size: uploadedFile.size,
-        type: uploadedFile.mimetype,
-        ownerTeam: teamId,
-        uploadUser: currentUser.nickname,
-        filePath: uploadedFile.location,
-        s3Key: uploadedFile.key,
-      });
-
-      const newFileId = newFile._id;
-
-      file.versions.push({
-        versionNumber:
-          file.versions[file.versions.length - 1].versionNumber + 1,
-        file: newFileId,
-      });
-
-      await file.save();
-      await newFile.save();
-
-      const user = await User.findById(userId)
-        .populate({
-          path: "teams",
-          populate: [
-            {
-              path: "members.user",
-            },
-            {
-              path: "ownedFolders",
-            },
-            {
-              path: "ownedFiles",
-              populate: {
-                path: "versions",
-                populate: {
-                  path: "file",
-                },
-              },
-            },
-            {
-              path: "joinRequests.user",
-            },
-          ],
-        })
-        .populate({
-          path: "notifications",
-          populate: {
-            path: "team",
-          },
-        });
-
-      res
-        .status(201)
-        .json({ message: "파일이 성공적으로 업로드 되었습니다.", user });
-    } catch (error) {
-      res.status(404).json({ error: "파일 업로드에 문제가 생겼습니다" });
-    }
-  },
-);
 
 router.post("/:fileId/newcomment/:userId", async (req, res, next) => {
   try {

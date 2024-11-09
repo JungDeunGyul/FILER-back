@@ -10,6 +10,43 @@ const { populateUserDetails } = require(
 
 const { createFile } = require(path.resolve(__dirname, "../utils/createFile"));
 
+const uploadFileInFile = async (req, res, next) => {
+  try {
+    const { fileId, userId } = req.params;
+    const uploadedFile = req.file;
+    const decodedFileName = decodeURIComponent(uploadedFile.originalname);
+
+    const file = await File.findById(fileId);
+
+    const teamId = file.ownerTeam.toString();
+    const currentUser = await User.findById(userId);
+
+    const newFile = await createFile(
+      decodedFileName,
+      uploadedFile,
+      teamId,
+      currentUser.nickname,
+    );
+
+    const newFileId = newFile._id;
+
+    file.versions.push({
+      versionNumber: file.versions[file.versions.length - 1].versionNumber + 1,
+      file: newFileId,
+    });
+
+    await file.save();
+
+    const user = await User.findById(userId).populate(populateUserDetails());
+
+    res
+      .status(201)
+      .json({ message: "파일이 성공적으로 업로드 되었습니다.", user });
+  } catch (error) {
+    res.status(404).json({ error: "파일 업로드에 문제가 생겼습니다" });
+  }
+};
+
 const uploadFileInFolder = async (req, res, next) => {
   try {
     const { folderId, userId } = req.params;
@@ -64,4 +101,5 @@ const uploadFileInFolder = async (req, res, next) => {
 
 module.exports = {
   uploadFileInFolder,
+  uploadFileInFile,
 };
