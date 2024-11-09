@@ -15,7 +15,7 @@ const handleItemAccess = (item, currentUserRole, itemType, res) => {
   return true;
 };
 
-const trashBinUpdate = async (teamId, itemId, itemType) => {
+const getOrUpdateTrashBin = async (teamId, itemId, itemType) => {
   const trashBin = await TrashBin.findOne({ ownerTeam: teamId })
     .populate({
       path: "folders",
@@ -43,7 +43,14 @@ const trashBinUpdate = async (teamId, itemId, itemType) => {
   return trashBin;
 };
 
+const checkIsItem = (item, itemType, res) => {
+  if (!item) {
+    return res.status(404).json({ message: `해당 ${itemType} 이 없습니다` });
+  }
+};
+
 module.exports = {
   handleItemAccess,
-  trashBinUpdate,
+  getOrUpdateTrashBin,
+  checkIsItem,
 };
