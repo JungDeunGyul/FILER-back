@@ -16,6 +16,10 @@ const { populateUserDetails } = require(
   path.resolve(__dirname, "../utils/populateHelpers"),
 );
 
+const deleteTeamResources = require(
+  path.resolve(__dirname, "../utils/deleteTeamResources"),
+);
+
 const { createFile } = require(path.resolve(__dirname, "../utils/createFile"));
 
 const downloadFile = async (req, res, next) => {
@@ -180,4 +184,58 @@ const uploadFileInTeam = async (req, res, next) => {
   }
 };
 
-module.exports = { downloadFile, createFolderInTeam, uploadFileInTeam };
+const withdrawTeam = async (req, res, next) => {
+  try {
+    const { teamId, userId } = req.params;
+    const userRole = req.body.currentUserRole;
+
+    const user = await User.findOne({ _id: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const team = await Team.findOne({ _id: teamId });
+    const teamName = team.name;
+
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    const updatedTeams = user.teams.filter(
+      (userTeam) => userTeam.toString() !== team._id.toString(),
+    );
+
+    user.teams = updatedTeams;
+    await user.save();
+
+    const updatedMembers = team.members.filter(
+      (member) => member.user.toString() !== userId,
+    );
+
+    team.members = updatedMembers;
+    await team.save();
+
+    if (userRole === "팀장") {
+      await deleteTeamResources(team);
+
+      await Team.findOneAndDelete({ name: teamName });
+    }
+
+    const updatedUser = await User.findOne({ _id: userId }).populate(
+      populateUserDetails(),
+    );
+
+    return res
+      .status(200)
+      .json({ message: `팀 ${teamName}에서 탈퇴 되었습니다.`, updatedUser });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+module.exports = {
+  downloadFile,
+  createFolderInTeam,
+  uploadFileInTeam,
+  withdrawTeam,
+};

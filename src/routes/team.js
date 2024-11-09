@@ -7,16 +7,16 @@ const s3Uploader = require(path.resolve(__dirname, "../middleware/s3Uploader"));
 const removeJoinRequest = require(
   path.resolve(__dirname, "../utils/removeJoinReqest"),
 );
-const deleteTeamResources = require(
-  path.resolve(__dirname, "../utils/deleteTeamResources"),
-);
 
 const { User } = require(path.resolve(__dirname, "../Models/User"));
 const { Team } = require(path.resolve(__dirname, "../Models/Team"));
 
-const { downloadFile, createFolderInTeam, uploadFileInTeam } = require(
-  path.resolve(__dirname, "../controllers/team.controller"),
-);
+const {
+  downloadFile,
+  createFolderInTeam,
+  uploadFileInTeam,
+  withdrawTeam,
+} = require(path.resolve(__dirname, "../controllers/team.controller"));
 
 let clientTeamJoinRequestSSE = [];
 
@@ -383,92 +383,7 @@ router.post("/:teamName/new/:userId", async (req, res, next) => {
   }
 });
 
-router.delete("/:teamId/withdraw/:userId", async (req, res, next) => {
-  const { teamId, userId } = req.params;
-  const userRole = req.body.currentUserRole;
-
-  const user = await User.findOne({ _id: userId });
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-
-  const team = await Team.findOne({ _id: teamId });
-  const teamName = team.name;
-
-  if (!team) {
-    return res.status(404).json({ message: "Team not found" });
-  }
-
-  const updatedTeams = user.teams.filter(
-    (userTeam) => userTeam.toString() !== team._id.toString(),
-  );
-
-  user.teams = updatedTeams;
-  await user.save();
-
-  const updatedMembers = team.members.filter(
-    (member) => member.user.toString() !== userId,
-  );
-
-  team.members = updatedMembers;
-  await team.save();
-
-  if (userRole === "팀장") {
-    await deleteTeamResources(team);
-
-    await Team.findOneAndDelete({ name: teamName });
-  }
-
-  const updatedUser = await User.findOne({ _id: userId })
-    .populate({
-      path: "teams",
-      populate: [
-        {
-          path: "members.user",
-        },
-        {
-          path: "ownedFolders",
-        },
-        {
-          path: "ownedFiles",
-          populate: {
-            path: "versions",
-            populate: {
-              path: "file",
-            },
-          },
-        },
-        {
-          path: "ownedFiles",
-          populate: {
-            path: "versions",
-            populate: {
-              path: "file",
-              populate: {
-                path: "comments",
-                populate: {
-                  path: "user",
-                },
-              },
-            },
-          },
-        },
-        {
-          path: "joinRequests.user",
-        },
-      ],
-    })
-    .populate({
-      path: "notifications",
-      populate: {
-        path: "team",
-      },
-    });
-
-  return res
-    .status(200)
-    .json({ message: `팀 ${teamName}에서 탈퇴 되었습니다.`, updatedUser });
-});
+router.delete("/:teamId/withdraw/:userId", withdrawTeam);
 
 router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
   try {
