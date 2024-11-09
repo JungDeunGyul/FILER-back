@@ -11,6 +11,10 @@ const deleteFolderAndSubFolders = require(
   path.resolve(__dirname, "../utils/deleteFolderAndSubFolders"),
 );
 
+const { getTrashBin } = require(
+  path.resolve(__dirname, "../controllers/trash.controller"),
+);
+
 router.patch("/file/:fileId", async (req, res) => {
   try {
     const { fileId } = req.params;
@@ -222,28 +226,7 @@ router.patch("/folder/:folderId", async (req, res) => {
   }
 });
 
-router.get("/:teamId", async (req, res) => {
-  try {
-    const { teamId } = req.params;
-
-    const trashBin = await TrashBin.findOne({ ownerTeam: teamId })
-      .populate({
-        path: "folders",
-        model: "Folder",
-        populate: { path: "item", model: "Folder" },
-      })
-      .populate({
-        path: "files",
-        model: "File",
-        populate: { path: "item", model: "File" },
-      });
-
-    res.status(200).json({ message: "TrashBin", trashBin });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+router.get("/:teamId", getTrashBin);
 
 router.delete("/folder/:folderId/delete", async (req, res) => {
   try {
