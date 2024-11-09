@@ -183,9 +183,41 @@ const moveFileToFolder = async (req, res, next) => {
   }
 };
 
+const newCommentInFile = async (req, res, next) => {
+  try {
+    const { fileId, userId } = req.params;
+    const comment = req.body.comment;
+
+    const file = await File.findById(fileId);
+    const ITEM_TYPE = "파일";
+
+    checkIsItem(file, ITEM_TYPE);
+
+    const newComment = await Comment.create({
+      fileId,
+      user: userId,
+      content: comment,
+    });
+    file.comments.push(newComment._id);
+
+    await newComment.save();
+    await file.save();
+
+    const user = await User.findById(userId).populate(populateUserDetails());
+
+    user.comments.push(newComment._id);
+    await user.save();
+
+    res.status(201).json({ message: "댓글이 성공적으로 달렸습니다", user });
+  } catch (error) {
+    res.status(404).json({ error: "파일 업로드에 문제가 생겼습니다" });
+  }
+};
+
 module.exports = {
   uploadFileInFolder,
   uploadFileInFile,
   setFilePermission,
   moveFileToFolder,
+  newCommentInFile,
 };
