@@ -2,9 +2,7 @@ const express = require("express");
 const router = express.Router();
 const path = require("path");
 
-const s3client = require(path.resolve(__dirname, "../../aws/s3Client"));
 const s3Uploader = require(path.resolve(__dirname, "../middleware/s3Uploader"));
-const { GetObjectCommand } = require("@aws-sdk/client-s3");
 
 const removeJoinRequest = require(
   path.resolve(__dirname, "../utils/removeJoinReqest"),
@@ -17,6 +15,10 @@ const { User } = require(path.resolve(__dirname, "../Models/User"));
 const { Team } = require(path.resolve(__dirname, "../Models/Team"));
 const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
 const { File } = require(path.resolve(__dirname, "../Models/File"));
+
+const { downloadFile } = require(
+  path.resolve(__dirname, "../controllers/team.controller"),
+);
 
 let clientTeamJoinRequestSSE = [];
 
@@ -39,6 +41,8 @@ const sendUserDataToClients = (
     client.write(`data: ${JSON.stringify(message)}\n\n`);
   }
 };
+
+router.get("/:teamId/file/:fileId", downloadFile);
 
 router.post("/:teamName/createfolder/:userId", async (req, res, next) => {
   try {
@@ -274,37 +278,6 @@ router.post(
     }
   },
 );
-
-router.get("/:teamId/file/:fileId", async (req, res) => {
-  try {
-    const { fileId } = req.params;
-    const currentUserRole = req.query.currentUserRole;
-    const file = await File.findById(fileId);
-
-    if (
-      file.visibleTo !== "수습" &&
-      currentUserRole !== "팀장" &&
-      file.visibleTo !== currentUserRole
-    ) {
-      return res
-        .status(201)
-        .json({ message: "당신은 해당 파일을 다운 받을 권한이 없습니다." });
-    }
-
-    const getObjectParams = {
-      Bucket: process.env.AWS_BUCKET,
-      Key: file.s3Key,
-    };
-
-    const getObjectCommand = new GetObjectCommand(getObjectParams);
-    const { Body } = await s3client.send(getObjectCommand);
-    res.attachment(file.s3Key);
-
-    Body.pipe(res);
-  } catch (error) {
-    res.status(404).json({ error: "File not found" });
-  }
-});
 
 router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
   try {
