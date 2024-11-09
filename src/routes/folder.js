@@ -6,43 +6,11 @@ const { User } = require(path.resolve(__dirname, "../Models/User"));
 const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
 const { Team } = require(path.resolve(__dirname, "../Models/Team"));
 
-router.get("/:folderId", async (req, res) => {
-  try {
-    const { folderId } = req.params;
-    const userRole = req.body.currentUserRole;
+const { getFolder } = require(
+  path.resolve(__dirname, "../controllers/folder.controller"),
+);
 
-    const folder = await Folder.findOne({ _id: folderId })
-      .populate({
-        path: "files",
-        populate: {
-          path: "versions",
-          populate: {
-            path: "file",
-          },
-        },
-      })
-      .populate({ path: "subFolders" });
-
-    if (!folder) {
-      return res.status(404).json({ message: "folder not found" });
-    }
-
-    if (
-      folder.visibleTo === "수습" ||
-      userRole === "팀장" ||
-      folder.visibleTo === userRole
-    ) {
-      res.status(201).json({ message: "Folder sent successfully", folder });
-    } else {
-      res
-        .status(400)
-        .json({ message: "User does not have authority for the folder" });
-    }
-  } catch (error) {
-    console.error("Error marking notification as read:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+router.get("/:folderId", getFolder);
 
 router.post("/:folderId/new", async (req, res) => {
   try {
