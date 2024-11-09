@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
+const Comment = require("./Comment");
 
 const userSchema = new Schema({
   email: { type: String, required: true, unique: true },
