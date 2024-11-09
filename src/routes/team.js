@@ -13,10 +13,8 @@ const deleteTeamResources = require(
 
 const { User } = require(path.resolve(__dirname, "../Models/User"));
 const { Team } = require(path.resolve(__dirname, "../Models/Team"));
-const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
-const { File } = require(path.resolve(__dirname, "../Models/File"));
 
-const { downloadFile, createFolderInTeam } = require(
+const { downloadFile, createFolderInTeam, uploadFileInTeam } = require(
   path.resolve(__dirname, "../controllers/team.controller"),
 );
 
@@ -49,126 +47,7 @@ router.post("/:teamName/createfolder/:userId", createFolderInTeam);
 router.post(
   "/:teamId/uploadfile/:userId",
   s3Uploader.single("file"),
-  async (req, res, next) => {
-    try {
-      const { userId, teamId } = req.params;
-      const uploadedFile = req.file;
-
-      const decodedFileName = decodeURIComponent(uploadedFile.originalname);
-      const user = await User.findOne({ _id: userId });
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const team = await Team.findOne({ _id: teamId });
-      if (!team) {
-        return res.status(404).json({ message: "Team not found" });
-      }
-
-      const isUserInTeam = team.members.some((member) =>
-        member.user.equals(userId),
-      );
-      if (!isUserInTeam) {
-        return res
-          .status(403)
-          .json({ message: "유저가 해당 팀에 속해 있지 않습니다." });
-      }
-
-      const userRoleInTeam = team.members.find((member) =>
-        member.user.equals(userId),
-      ).role;
-
-      if (userRoleInTeam !== "팀장" && userRoleInTeam !== "팀원") {
-        return res
-          .status(403)
-          .json({ message: "파일을 넣을 권한이 없습니다." });
-      }
-
-      const isFile = team.ownedFiles.some(
-        (file) => file.name === uploadedFile.originalname,
-      );
-
-      if (isFile) {
-        return res.status(412).json({ message: "파일 이름이 이미 존재합니다" });
-      }
-
-      const newFile = await File.create({
-        name: decodedFileName,
-        size: uploadedFile.size,
-        type: uploadedFile.mimetype,
-        ownerTeam: teamId,
-        uploadUser: user.nickname,
-        filePath: uploadedFile.location,
-        s3Key: uploadedFile.key,
-      });
-
-      const newFileId = newFile._id;
-
-      newFile.versions.push({
-        versionNumber: 1,
-        file: newFileId,
-      });
-
-      team.ownedFiles.push(newFile);
-
-      await team.save();
-      await user.save();
-      await newFile.save();
-
-      const updatedUser = await User.findOne({ _id: userId })
-        .populate({
-          path: "teams",
-          populate: [
-            {
-              path: "members.user",
-            },
-            {
-              path: "ownedFolders",
-            },
-            {
-              path: "ownedFiles",
-              populate: {
-                path: "versions",
-                populate: {
-                  path: "file",
-                },
-              },
-            },
-            {
-              path: "ownedFiles",
-              populate: {
-                path: "versions",
-                populate: {
-                  path: "file",
-                  populate: {
-                    path: "comments",
-                    populate: {
-                      path: "user",
-                    },
-                  },
-                },
-              },
-            },
-            {
-              path: "joinRequests.user",
-            },
-          ],
-        })
-        .populate({
-          path: "notifications",
-          populate: {
-            path: "team",
-          },
-        });
-
-      return res
-        .status(201)
-        .json({ message: "파일이 업로드 되었습니다!", updatedUser });
-    } catch (error) {
-      console.error(error);
-      return res.status(400).json({ message: "Faild, create uploadfile" });
-    }
-  },
+  uploadFileInTeam,
 );
 
 router.patch("/:teamName/joinrequest/:userId", async (req, res, next) => {
