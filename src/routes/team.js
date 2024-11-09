@@ -16,7 +16,7 @@ const { Team } = require(path.resolve(__dirname, "../Models/Team"));
 const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
 const { File } = require(path.resolve(__dirname, "../Models/File"));
 
-const { downloadFile } = require(
+const { downloadFile, createFolderInTeam } = require(
   path.resolve(__dirname, "../controllers/team.controller"),
 );
 
@@ -44,115 +44,7 @@ const sendUserDataToClients = (
 
 router.get("/:teamId/file/:fileId", downloadFile);
 
-router.post("/:teamName/createfolder/:userId", async (req, res, next) => {
-  try {
-    const { userId, teamName } = req.params;
-    const { folderName } = req.body;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const team = await Team.findOne({ name: teamName }).populate({
-      path: "ownedFolders",
-    });
-
-    if (!team) {
-      return res.status(404).json({ message: "Team not found" });
-    }
-
-    const isUserInTeam = team.members.some((member) =>
-      member.user.equals(userId),
-    );
-
-    if (!isUserInTeam) {
-      return res
-        .status(403)
-        .json({ message: "유저가 해당 팀에 속해 있지 않습니다." });
-    }
-
-    const userRoleInTeam = team.members.find((member) =>
-      member.user.equals(userId),
-    ).role;
-
-    if (userRoleInTeam !== "팀장" && userRoleInTeam !== "팀원") {
-      return res
-        .status(403)
-        .json({ message: "폴더를 생성할 권한이 없습니다." });
-    }
-
-    const isFolder = team.ownedFolders.some(
-      (folder) => folder.name === folderName,
-    );
-
-    if (isFolder) {
-      return res.status(412).json({ message: "폴더 이름이 이미 존재합니다" });
-    }
-
-    const newFolder = await Folder.create({
-      name: folderName,
-      ownerTeam: team._id,
-    });
-
-    team.ownedFolders.push(newFolder);
-
-    await team.save();
-    await user.save();
-
-    const updatedUser = await User.findOne({ _id: userId })
-      .populate({
-        path: "teams",
-        populate: [
-          {
-            path: "members.user",
-          },
-          {
-            path: "ownedFolders",
-          },
-          {
-            path: "ownedFiles",
-            populate: {
-              path: "versions",
-              populate: {
-                path: "file",
-              },
-            },
-          },
-          {
-            path: "ownedFiles",
-            populate: {
-              path: "versions",
-              populate: {
-                path: "file",
-                populate: {
-                  path: "comments",
-                  populate: {
-                    path: "user",
-                  },
-                },
-              },
-            },
-          },
-          {
-            path: "joinRequests.user",
-          },
-        ],
-      })
-      .populate({
-        path: "notifications",
-        populate: {
-          path: "team",
-        },
-      });
-
-    return res
-      .status(201)
-      .json({ message: "Folder created successfully", updatedUser });
-  } catch (error) {
-    return res.status(400).json({ message: "Faild, create Folder" });
-  }
-});
+router.post("/:teamName/createfolder/:userId", createFolderInTeam);
 
 router.post(
   "/:teamId/uploadfile/:userId",
