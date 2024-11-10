@@ -19,27 +19,7 @@ const {
   createTeam,
 } = require(path.resolve(__dirname, "../controllers/team.controller"));
 
-let clientTeamJoinRequestSSE = [];
-
-const sendUserDataToClients = (
-  targetUserData,
-  messageTargetUserId,
-  action,
-  notification,
-) => {
-  const client = clientTeamJoinRequestSSE.find((client) => {
-    return client.loginUserId === messageTargetUserId.toString();
-  });
-
-  if (client) {
-    const message = {
-      action,
-      userData: targetUserData,
-      notification,
-    };
-    client.write(`data: ${JSON.stringify(message)}\n\n`);
-  }
-};
+const { sendUserDataToClients } = require("../routes/teamJoinRequestSSE");
 
 router.get("/:teamId/file/:fileId", downloadFile);
 
@@ -532,24 +512,6 @@ router.patch("/:selectedMemberId/manageteam/", async (req, res, next) => {
   } catch (error) {
     console.error(error);
   }
-});
-
-router.get("/filer-stream/:loginUserId", (req, res) => {
-  const loginUserId = req.params.loginUserId;
-
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-
-  res.loginUserId = loginUserId;
-
-  clientTeamJoinRequestSSE.push(res);
-
-  req.on("close", () => {
-    clientTeamJoinRequestSSE = clientTeamJoinRequestSSE.filter(
-      (client) => client !== res,
-    );
-  });
 });
 
 module.exports = router;
