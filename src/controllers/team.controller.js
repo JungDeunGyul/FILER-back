@@ -5,10 +5,10 @@ const { GetObjectCommand } = require("@aws-sdk/client-s3");
 
 const { sendUserDataToClients } = require("../routes/teamJoinRequestSSE");
 
-const { User } = require(path.resolve(__dirname, "../Models/User"));
-const { Team } = require(path.resolve(__dirname, "../Models/Team"));
-const { File } = require(path.resolve(__dirname, "../Models/File"));
-const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
+const { User } = require(path.resolve(__dirname, "../models/User"));
+const { Team } = require(path.resolve(__dirname, "../models/Team"));
+const { File } = require(path.resolve(__dirname, "../models/File"));
+const { Folder } = require(path.resolve(__dirname, "../models/Folder"));
 
 const { handleItemAccess } = require(
   path.resolve(__dirname, "../utils/itemUtils"),

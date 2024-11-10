@@ -1,5 +1,5 @@
 const path = require("path");
-const { TrashBin } = require(path.resolve(__dirname, "../Models/TrashBin"));
+const { TrashBin } = require(path.resolve(__dirname, "../models/TrashBin"));
 
 const handleItemAccess = (item, currentUserRole, itemType, res) => {
   if (

@@ -1,6 +1,6 @@
 const path = require("path");
 
-const { File } = require(path.resolve(__dirname, "../Models/File"));
+const { File } = require(path.resolve(__dirname, "../models/File"));
 
 const createFile = async (
   decodedFileName,

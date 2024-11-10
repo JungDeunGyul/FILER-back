@@ -1,8 +1,8 @@
 const path = require("path");
 
-const { User } = require(path.resolve(__dirname, "../Models/User"));
-const { Team } = require(path.resolve(__dirname, "../Models/Team"));
-const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
+const { User } = require(path.resolve(__dirname, "../models/User"));
+const { Team } = require(path.resolve(__dirname, "../models/Team"));
+const { Folder } = require(path.resolve(__dirname, "../models/Folder"));
 
 const { checkIsItem, handleItemAccess } = require(
   path.resolve(__dirname, "../utils/itemUtils"),

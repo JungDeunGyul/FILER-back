@@ -1,7 +1,7 @@
 const path = require("path");
 
-const { Folder } = require(path.resolve(__dirname, "../Models/Folder"));
-const { File } = require(path.resolve(__dirname, "../Models/File"));
+const { Folder } = require(path.resolve(__dirname, "../models/Folder"));
+const { File } = require(path.resolve(__dirname, "../models/File"));
 
 async function deleteFolderAndSubFolders(folderId) {
   try {

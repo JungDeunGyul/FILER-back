@@ -1,6 +1,6 @@
 const path = require("path");
 
-const { User } = require(path.resolve(__dirname, "../Models/User"));
+const { User } = require(path.resolve(__dirname, "../models/User"));
 
 const { populateUserDetails } = require(
   path.resolve(__dirname, "../utils/populateHelpers"),
