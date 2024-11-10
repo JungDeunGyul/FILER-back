@@ -3,6 +3,8 @@ const path = require("path");
 const s3client = require(path.resolve(__dirname, "../../aws/s3Client"));
 const { GetObjectCommand } = require("@aws-sdk/client-s3");
 
+const { sendUserDataToClients } = require("../routes/teamJoinRequestSSE");
+
 const { User } = require(path.resolve(__dirname, "../Models/User"));
 const { Team } = require(path.resolve(__dirname, "../Models/Team"));
 const { File } = require(path.resolve(__dirname, "../Models/File"));
@@ -18,6 +20,10 @@ const { populateUserDetails } = require(
 
 const deleteTeamResources = require(
   path.resolve(__dirname, "../utils/deleteTeamResources"),
+);
+
+const removeJoinRequest = require(
+  path.resolve(__dirname, "../utils/removeJoinReqest"),
 );
 
 const { createFile } = require(path.resolve(__dirname, "../utils/createFile"));
@@ -292,10 +298,118 @@ const createTeam = async (req, res, next) => {
   }
 };
 
+const processJoinRequest = async (req, res, next) => {
+  try {
+    const { userId, teamName } = req.params;
+    const { action, requestUserId } = req.body;
+
+    const user = await User.findOne({ _id: userId }).populate(
+      populateUserDetails(),
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const team = await Team.findOne({ name: teamName });
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    const isMember = team.members.some(
+      (member) => member.user.toString() === userId,
+    );
+
+    const isJoinRequested = team.joinRequests.some(
+      (request) => request.user.toString() === userId,
+    );
+
+    if (isMember && action === "가입요청") {
+      return res.status(412).json({ message: "User is already a member" });
+    } else if (isJoinRequested && action === "가입요청") {
+      return res
+        .status(412)
+        .json({ message: "User is already has a pending request" });
+    }
+
+    const teamLeaderId = team.leader._id;
+    const teamLeader = await User.findOne({ _id: teamLeaderId }).populate(
+      populateUserDetails(),
+    );
+
+    const requestUser = await User.findOne({ _id: requestUserId });
+
+    if (userId === teamLeaderId.toString()) {
+      if (action === "수락") {
+        team.members.push({
+          user: requestUser._id,
+          role: "수습",
+        });
+
+        requestUser.teams.push(team._id);
+
+        requestUser.notifications.push({
+          type: "가입수락",
+          content: `${requestUser.nickname}님은 ${team.name}팀에 가입되셨습니다.`,
+          isRead: false,
+          team,
+        });
+
+        await requestUser.save();
+        const updatedRequestUser = await User.findOne({
+          _id: requestUserId,
+        }).populate(populateUserDetails);
+
+        removeJoinRequest(team, requestUser._id);
+        sendUserDataToClients(
+          updatedRequestUser,
+          updatedRequestUser._id,
+          action,
+        );
+      } else if (action === "거절") {
+        requestUser.notifications.push({
+          type: "가입거절",
+          content: `${requestUser.nickname}님은 ${team.name}팀에 거절되셨습니다.`,
+          isRead: false,
+          team,
+        });
+
+        removeJoinRequest(team, requestUser._id);
+        sendUserDataToClients(requestUser, requestUser._id, action);
+      }
+
+      await requestUser.save();
+    } else if (action === "가입요청") {
+      team.joinRequests.push({ user: userId });
+      teamLeader.notifications.push({
+        type: "가입요청",
+        content: `${user.nickname}님이 ${team.name}에 가입 신청을 하셨습니다.`,
+        requestUser: `${userId}`,
+        isRead: false,
+        team,
+      });
+
+      res
+        .status(200)
+        .json({ message: "Your request has been sent successfully" });
+
+      sendUserDataToClients(teamLeader, teamLeaderId, action);
+      await teamLeader.save();
+    }
+
+    await teamLeader.save();
+    await team.save();
+    await user.save();
+  } catch (error) {
+    return res.status(400).json({ message: "Faild, team join request" });
+  }
+};
+
 module.exports = {
   downloadFile,
   createFolderInTeam,
   uploadFileInTeam,
   withdrawTeam,
   createTeam,
+  processJoinRequest,
 };
